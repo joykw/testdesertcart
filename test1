@@ -1,0 +1,72 @@
+from random import randint
+# import requests
+import pandas as pd
+import time
+import re
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+
+options = webdriver.ChromeOptions()
+options.add_experimental_option("excludeSwitches", ["enable-automation"])
+options.add_experimental_option('useAutomationExtension', False)
+options.add_argument("--disable-blink-features=AutomationControlled")
+options.add_argument('--headless')
+options.add_argument('log-level=3')
+options.add_argument(
+    "user-agent=Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36")
+driver = webdriver.Chrome(
+    options=options, executable_path="/Users/joywanjiku/Desktop/chromedriver_mac_arm64/chromedriver")
+
+number = 1
+while number <= 1:
+    # Get scaroll heigh
+    url = f"https://www.desertcart.com.py/search/syngenta"
+
+    driver.get(url)
+    time.sleep(randint(1, 100))
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    name_list = []
+    url_list = []
+    price_list = []
+    seller_list = []
+
+for i in soup.find_all("div", {"class": "product-card__content"}):
+
+    # name = i.find("h2", {"class":"product-name"})  #['content'] has the class name
+    # name = i.find("h2", {"class":"product-name"})+ ("a")[0]["href"]
+    # name = i.find("title")
+    name = i.find('a', {'class': 'product-card__title'}).text.strip()
+    name_list.append(name)
+
+    url = i.find('a', {'class': 'product-card__image-link'})['href']
+    print(url)
+
+    # url = re.findall(r'(https?://\S+)', str(i))[0]
+    # print(url)
+
+    url_list.append(url)
+    try:
+        price = i.find("div", {"class": "ProductBoxView__discount"}).text
+        price = re.sub("[^0-9,.]", "", price)
+    except:
+        price = "N/A"
+    price_list.append(price)
+    print(name, url, name)
+    pd_dict = {'name': name_list, 'url': url_list, 'price': price_list}
+    df = pd.DataFrame(pd_dict)
+    df['country'] = 'pARAGUAY'
+    df['region'] = 'latam'
+    df['domain'] = "https://www.desertcart.com.py/"
+    df['seller'] = "desertcart"
+
+    print(df)
+    if number == 1:
+        df.to_csv(
+            r'/Users/joywanjiku/Desktop/Coding/desertcartPY/results/testsel.csv', encoding='utf-8-sig')
+        number += 1
+    else:
+        number += 1
+        df.to_csv(r'/Users/joywanjiku/Desktop/Coding/desertcartPY/results/testsel.csv',
+                  encoding='utf-8-sig', mode='a', header=False)
